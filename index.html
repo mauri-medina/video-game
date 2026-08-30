@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Play Pong on YuTube</title>
+    <title>Play Pong on YouTube</title>
     <style>
         :root {
             --bg: #07070a;
@@ -38,7 +38,6 @@
             gap: 16px;
         }
 
-        /* ── Header ──────────────────────────────────────────────── */
         header { text-align: center; }
 
         h1 {
@@ -59,7 +58,6 @@
 
         header p b { color: var(--dim); font-weight: 600; }
 
-        /* ── Board ───────────────────────────────────────────────── */
         #board {
             position: relative;
             border: 1px solid var(--line);
@@ -116,7 +114,6 @@
             transition: border-color 0.2s, background 0.2s, transform 0.12s;
         }
 
-        /* before the first start it is the page's primary action */
         .btn.primary:not(:disabled) {
             border-color: var(--accent);
             background: rgba(102, 178, 255, 0.18);
@@ -176,8 +173,6 @@
             white-space: nowrap;
         }
 
-        /* ── Notes ───────────────────────────────────────────────── */
-        /* Always on screen. What is true *right now* lives in the status chip. */
         #notes {
             display: flex;
             flex-direction: column;
@@ -207,7 +202,6 @@
 
         .note.stutter b { color: var(--warn); }
 
-        /* ── Controls legend ─────────────────────────────────────── */
         #legend {
             display: flex;
             justify-content: center;
@@ -285,8 +279,8 @@
 <body>
 
 <header>
-    <h1>Pong</h1>
-    <p>The <b>YouTube player</b> is the render engine, every game state is a frame.</p>
+    <h1>Play Pong on YouTube</h1>
+<!--    <p>The <b>YouTube player</b> is the render engine, every game state is a frame.</p>-->
 </header>
 
 <div id="notes">
@@ -344,7 +338,6 @@
 </footer>
 
 <script>
-    // ── Constants (match pong_2p.py) ─────────────────────────────────────────
     const CELL = 22;
     const COLS = 24;
     const ROWS = 14;
@@ -359,7 +352,6 @@
     const CSV_URL = '528x308_cell22_fps60_repeat3.csv';
     const VIDEO_ID = 'meFEZtn-Dqw';
 
-    // ── DOM refs ─────────────────────────────────────────────────────────────
     const boardEl = document.getElementById('board');
     const stageEl = document.getElementById('stage');
     const toggleBtn = document.getElementById('toggle-btn');
@@ -372,7 +364,6 @@
     const ICON_PLAY = 'M2 1l8 5-8 5z';
     const ICON_PAUSE = 'M2.5 1h2.5v10H2.5zM7 1h2.5v10H7z';
 
-    // ── Game state ───────────────────────────────────────────────────────────
     let leftPadY = 0;
     let rightPadY = 0;
     let ballX = 12 * CELL;
@@ -417,7 +408,6 @@
         if (el) el.classList.toggle('on', on);
     }
 
-    // ── Status chip ──────────────────────────────────────────────────────────
     function setStatus(tone, text) {
         statusEl.dataset.tone = tone;
         statusText.textContent = text;
@@ -446,7 +436,6 @@
 
     toggleBtn.addEventListener('click', toggle);
 
-    // ── CSV loading ──────────────────────────────────────────────────────────
     function parseCSV(text) {
         const map = Object.create(null);
         const lines = text.trim().split('\n');
@@ -469,7 +458,6 @@
             setStatus('idle', 'Could not load ' + CSV_URL + ' · try reloading');
         });
 
-    // ── YouTube player ───────────────────────────────────────────────────────
     let player;
     let playerReady = false;
 
@@ -524,7 +512,7 @@
         });
     }
 
-    // Both the CSV and the player have to be up before the game can start.
+    // Both the CSV and the player have to be up before the game can start
     function maybeReady() {
         if (!frameMap || !playerReady || started) return;
         toggleBtn.disabled = false;
@@ -546,7 +534,6 @@
         setRunning(true);
     }
 
-    // ── Simulation ───────────────────────────────────────────────────────────
     function gameStep() {
         let leftVel = 0;
         if (keys['w']) leftVel = -P_SPD;
@@ -613,7 +600,6 @@
 
     requestAnimationFrame(loop);
 
-    // ── Fit the fixed-size board into narrow viewports ───────────────────────
     function fit() {
         const room = Math.min(W, document.body.clientWidth - 32);
         const scale = Math.min(1, room / W);
