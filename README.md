@@ -2,8 +2,8 @@
 
 Games where the video player is the render engine.
 
-The idea is that nothing gets drawn while you play. Every position the game can be
-in is  stored in a video, one state per frame. So playing is just 
+The idea is to use a video for the graphics, nothing gets drawn while you play. Every position the game can be
+in is stored in a video, one state per frame. So playing is just 
 running the game logic, figuring out which frame matches the current state, and
 telling the video player to jump to it.
 
@@ -54,14 +54,11 @@ Play pong in a video player with the generated video.
 ```python
   python video_player_pong.py
 ```
-The game loop is normal Pong, only moving a whole cell at a time.
+The game loop is normal Pong, only moving a cell at a time.
 
-After moving everything, the positions are used to look up the frame number in the CSV to get the frame number corresponding to the current state
+In each frame, the new positions are calculated and are used to look up the frame number in the CSV to get the frame number corresponding to the current state
 
 ## Play Pong on YouTube
-
-`index.html` plays the same game using Youtube as the video player
-
 
 ### Youtube Api: get frames
 
@@ -74,11 +71,11 @@ player.seekTo(frame / 60, true);
 Frame 74,010 becomes second 1233.5. YouTube has to figure out on its own which
 frame falls on that timestamp, and it doesn't always get it right, it can end up
 one or two frames ahead or behind the one we asked for. And if it shows the wrong
-frame, you see a board that isn't the state the game is in.
+frame, you see positions that aren't the state the game is in.
 
-### That's why the frames are duplicated
+### Store diplucated frames
 
-So the generator doesn't write each state just once. It writes it `repeat` times in
+The generator doesn't write each state just once. It writes it `repeat` times in
 a row and the CSV points to the copy in the middle:
 
 ```
@@ -90,5 +87,5 @@ state:      [ S   S   S ]
 
 That way, if the seek misses by one frame in either direction, it lands on a copy
 of the same image and you don't notice. More copies means more room for error but
-also a longer video, and three turned out to be enough.
+also a longer video.
 

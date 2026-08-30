@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pong · YouTube</title>
+    <title>Play Pong on YuTube</title>
     <style>
         :root {
             --bg: #07070a;
@@ -34,8 +34,8 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            padding: 32px 16px;
-            gap: 22px;
+            padding: 22px 16px;
+            gap: 16px;
         }
 
         /* ── Header ──────────────────────────────────────────────── */
@@ -51,7 +51,7 @@
         }
 
         header p {
-            margin-top: 8px;
+            margin-top: 6px;
             font-size: 0.78rem;
             color: var(--dim);
             line-height: 1.5;
@@ -86,77 +86,6 @@
 
         #player, #player iframe { display: block; border: none; }
 
-        /* the video is a render surface, not a player: swallow clicks */
-        #shield { position: absolute; inset: 0; }
-
-        /* ── Overlay ─────────────────────────────────────────────── */
-        #overlay {
-            position: absolute;
-            inset: 0;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 14px;
-            background: rgba(4, 4, 7, 0.94);
-            backdrop-filter: blur(3px);
-            -webkit-backdrop-filter: blur(3px);
-            font-size: 0.8rem;
-            color: var(--dim);
-            transition: opacity 0.35s ease;
-        }
-
-        #overlay[data-state="hidden"] { opacity: 0; pointer-events: none; }
-        #overlay[data-state="paused"] { background: rgba(4, 4, 7, 0.82); cursor: pointer; }
-
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--line-soft);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        #start-btn {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 11px 26px 11px 22px;
-            border: 1px solid var(--accent);
-            border-radius: 999px;
-            background: rgba(102, 178, 255, 0.18);
-            color: #fff;
-            font: inherit;
-            font-size: 0.8rem;
-            font-weight: 600;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: background 0.2s, border-color 0.2s, transform 0.15s;
-        }
-
-        #start-btn:hover {
-            background: rgba(102, 178, 255, 0.3);
-            border-color: #a3d0ff;
-        }
-
-        #start-btn:active { transform: scale(0.97); }
-        #start-btn svg { fill: #fff; }
-
-        .overlay-title {
-            font-size: 0.78rem;
-            letter-spacing: 0.3em;
-            text-indent: 0.3em;
-            text-transform: uppercase;
-            color: var(--text);
-        }
-
-        .overlay-hint { font-size: 0.72rem; color: var(--dim); }
-
         /* ── Toolbar ─────────────────────────────────────────────── */
         #toolbar {
             display: flex;
@@ -166,24 +95,37 @@
             max-width: 528px;
         }
 
-        .icon-btn {
+        .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 38px;
+            gap: 9px;
+            min-width: 116px;
             height: 38px;
+            padding: 0 18px;
             border: 1px solid var(--line-soft);
             border-radius: 10px;
             background: var(--panel);
             color: var(--text);
+            font: inherit;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
             cursor: pointer;
             transition: border-color 0.2s, background 0.2s, transform 0.12s;
         }
 
-        .icon-btn:hover:not(:disabled) { border-color: var(--accent); background: #26262f; }
-        .icon-btn:active:not(:disabled) { transform: scale(0.94); }
-        .icon-btn:disabled { opacity: 0.45; cursor: default; }
-        .icon-btn svg { fill: currentColor; }
+        /* before the first start it is the page's primary action */
+        .btn.primary:not(:disabled) {
+            border-color: var(--accent);
+            background: rgba(102, 178, 255, 0.18);
+        }
+
+        .btn:hover:not(:disabled) { border-color: var(--accent); background: #26262f; }
+        .btn:active:not(:disabled) { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.45; cursor: default; }
+        .btn svg { fill: currentColor; flex: none; }
 
         #status {
             display: flex;
@@ -234,6 +176,37 @@
             white-space: nowrap;
         }
 
+        /* ── Notes ───────────────────────────────────────────────── */
+        /* Always on screen. What is true *right now* lives in the status chip. */
+        #notes {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            max-width: 528px;
+            margin-top: -4px;
+        }
+
+        .note {
+            font-size: 0.78rem;
+            line-height: 1.55;
+            text-align: center;
+            color: var(--dim);
+        }
+
+        .note b { color: var(--text); font-weight: 600; }
+
+        .note.stutter {
+            padding: 7px 14px;
+            border: 1px solid rgba(255, 197, 61, 0.35);
+            border-radius: 8px;
+            background: rgba(255, 197, 61, 0.09);
+            color: #f2ddab;
+        }
+
+        .note.stutter b { color: var(--warn); }
+
         /* ── Controls legend ─────────────────────────────────────── */
         #legend {
             display: flex;
@@ -273,7 +246,7 @@
             align-items: center;
             justify-content: center;
             min-width: 28px;
-            height: 26px;
+            height: 24px;
             padding: 0 8px;
             border: 1px solid var(--line-soft);
             border-bottom-width: 2px;
@@ -288,14 +261,21 @@
         kbd.on { border-color: var(--accent); color: #fff; background: rgba(102, 178, 255, 0.3); }
 
         footer {
-            font-size: 0.7rem;
-            color: var(--dim);
-            text-align: center;
-            line-height: 1.8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        footer a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--line-soft); }
-        footer a:hover { color: var(--accent); border-color: var(--accent); }
+        footer a {
+            display: inline-flex;
+            padding: 6px;
+            color: var(--dim);
+            border-radius: 8px;
+            transition: color 0.2s, background 0.2s;
+        }
+
+        footer a:hover { color: var(--accent); background: var(--panel); }
+        footer svg { fill: currentColor; display: block; }
 
         @media (max-width: 620px) {
             #legend .pad { min-width: 0; }
@@ -306,23 +286,29 @@
 
 <header>
     <h1>Pong</h1>
-    <p>The <b>YouTube player</b> is the render engine &mdash; every board position is a frame.</p>
+    <p>The <b>YouTube player</b> is the render engine, every game state is a frame.</p>
 </header>
+
+<div id="notes">
+    <p class="note">
+        Hit YouTube play button to to keep YouTube's UI in
+        view, or press <b>Start</b> for just the board.
+    </p>
+    <p class="note stutter">
+        ⚠️ <b>It can stutter</b> while YouTube buffers, keep playing and it settles.
+    </p>
+</div>
 
 <div id="board">
     <div id="stage">
         <div id="player"></div>
-        <div id="shield"></div>
-        <div id="overlay" data-state="loading">
-            <div class="spinner"></div>
-            <span class="overlay-hint">Loading game states&hellip;</span>
-        </div>
     </div>
 </div>
 
 <div id="toolbar">
-    <button id="toggle-btn" class="icon-btn" disabled aria-label="Play game" title="Play / pause the game (space)">
-        <svg width="14" height="14" viewBox="0 0 12 12" aria-hidden="true"><path id="toggle-icon" d="M2 1l8 5-8 5z"/></svg>
+    <button id="toggle-btn" class="btn primary" disabled aria-label="Start game" title="Play / pause the game (space)">
+        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path id="toggle-icon" d="M2 1l8 5-8 5z"/></svg>
+        <span id="toggle-label">Start</span>
     </button>
     <div id="status" data-tone="idle">
         <span id="dot"></span>
@@ -337,7 +323,7 @@
         <div class="keys"><kbd data-key="w">W</kbd><kbd data-key="s">S</kbd></div>
     </div>
     <div class="pad">
-        <div class="who">Pause</div>
+        <div class="who">Pause the game</div>
         <div class="keys"><kbd class="wide" data-key=" ">space</kbd></div>
     </div>
     <div class="pad">
@@ -347,9 +333,14 @@
 </div>
 
 <footer>
-    Keyboard required &middot;
-    <a href="https://www.youtube.com/watch?v=meFEZtn-Dqw" target="_blank" rel="noopener">source video</a> &middot;
-    <a href="https://github.com/mauri-medina/video-game" target="_blank" rel="noopener">source code</a>
+    <a href="https://www.youtube.com/watch?v=meFEZtn-Dqw" target="_blank" rel="noopener"
+       title="The video this plays" aria-label="The video this plays">
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.5 15.6V8.4l6.3 3.6-6.3 3.6z"/></svg>
+    </a>
+    <a href="https://github.com/mauri-medina/video-game" target="_blank" rel="noopener"
+       title="Source code" aria-label="Source code">
+        <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+    </a>
 </footer>
 
 <script>
@@ -371,9 +362,9 @@
     // ── DOM refs ─────────────────────────────────────────────────────────────
     const boardEl = document.getElementById('board');
     const stageEl = document.getElementById('stage');
-    const overlay = document.getElementById('overlay');
     const toggleBtn = document.getElementById('toggle-btn');
     const toggleIcon = document.getElementById('toggle-icon');
+    const toggleLabel = document.getElementById('toggle-label');
     const statusEl = document.getElementById('status');
     const statusText = document.getElementById('status-text');
     const readout = document.getElementById('readout');
@@ -393,6 +384,7 @@
     let started = false;      // the player has hit start at least once
     let running = false;      // the simulation is advancing
     let buffering = false;    // YouTube is fetching, so the sim is frozen
+    let kickstarting = false; // the one deliberate play(), to make YouTube decode
     let lastFrame = -1;       // avoid re-seeking to the frame already shown
 
     // ── Input ────────────────────────────────────────────────────────────────
@@ -402,7 +394,7 @@
         const k = e.key.toLowerCase();
         if (k === ' ') {
             e.preventDefault();
-            if (started) setRunning(!running);
+            toggle();
             return;
         }
         if (k === 'arrowup' || k === 'arrowdown') e.preventDefault();
@@ -434,29 +426,25 @@
     function setRunning(next) {
         running = next;
         toggleIcon.setAttribute('d', running ? ICON_PAUSE : ICON_PLAY);
+        toggleLabel.textContent = running ? 'Pause' : 'Play';
         toggleBtn.setAttribute('aria-label', running ? 'Pause game' : 'Play game');
+        toggleBtn.classList.remove('primary');
         boardEl.classList.toggle('live', running);
 
         if (running) {
-            overlay.dataset.state = 'hidden';
+            if (started && !kickstarting) player.pauseVideo();
             if (!buffering) setStatus('live', 'Playing');
         } else {
-            setStatus('idle', 'Paused');
-            overlay.dataset.state = 'paused';
-            overlay.innerHTML =
-                '<div class="overlay-title">Paused</div>' +
-                '<div class="overlay-hint">space, click, or &#9654; to resume</div>';
+            setStatus('idle', 'Paused · the video is yours meanwhile');
         }
     }
 
-    toggleBtn.addEventListener('click', () => {
+    function toggle() {
+        if (toggleBtn.disabled) return;
         if (!started) startGame(); else setRunning(!running);
-    });
+    }
 
-    // Clicking the dimmed board resumes, like any paused player.
-    overlay.addEventListener('click', () => {
-        if (overlay.dataset.state === 'paused') setRunning(true);
-    });
+    toggleBtn.addEventListener('click', toggle);
 
     // ── CSV loading ──────────────────────────────────────────────────────────
     function parseCSV(text) {
@@ -478,11 +466,7 @@
             maybeReady();
         })
         .catch(err => {
-            setStatus('idle', 'Could not load ' + CSV_URL);
-            overlay.dataset.state = 'error';
-            overlay.innerHTML =
-                '<div class="overlay-title">No states</div>' +
-                '<div class="overlay-hint">' + CSV_URL + ' failed to load (' + err.message + ')</div>';
+            setStatus('idle', 'Could not load ' + CSV_URL + ' · try reloading');
         });
 
     // ── YouTube player ───────────────────────────────────────────────────────
@@ -501,7 +485,7 @@
             playerVars: {
                 autoplay: 0,
                 mute: 1,
-                controls: 0,       // the video is a canvas, not something to scrub
+                controls: 1,       // the video is a canvas, not something to scrub
                 disablekb: 1,
                 iv_load_policy: 3,
                 fs: 0,
@@ -521,6 +505,20 @@
                     if (buffering !== wasBuffering && running) {
                         setStatus(buffering ? 'busy' : 'live', buffering ? 'Syncing frames…' : 'Playing');
                     }
+
+                    if (e.data === YT.PlayerState.PLAYING) {
+                        if (!started) {
+                            // Pressing YouTube's own play button is the same
+                            // intent as pressing ours: start the game. The
+                            // video is already rolling, so don't play it again.
+                            startGame(true);
+                        } else if (running && !kickstarting) {
+                            // Otherwise playback would run the picture away
+                            // from the game state. Pause it and leave seekTo()
+                            // in charge.
+                            player.pauseVideo();
+                        }
+                    }
                 }
             }
         });
@@ -529,23 +527,19 @@
     // Both the CSV and the player have to be up before the game can start.
     function maybeReady() {
         if (!frameMap || !playerReady || started) return;
-        overlay.dataset.state = 'ready';
-        overlay.innerHTML =
-            '<button id="start-btn"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">' +
-            '<path d="M2 1l8 5-8 5z"/></svg>Start</button>' +
-            '<div class="overlay-hint">W / S &middot; &uarr; / &darr;</div>';
-        overlay.querySelector('#start-btn').addEventListener('click', startGame);
         toggleBtn.disabled = false;
-        setStatus('idle', 'Ready');
+        setStatus('idle', 'Ready · press start, or play the video');
     }
 
     // The first play() is what gets YouTube to decode; it is paused right after
     // so only our seeks move the picture.
-    function startGame() {
-        if (!frameMap || !playerReady) return;
+    function startGame(alreadyPlaying) {
+        if (!frameMap || !playerReady || started) return;
         started = true;
-        player.playVideo();
+        kickstarting = true;
+        if (!alreadyPlaying) player.playVideo();
         setTimeout(() => {
+            kickstarting = false;
             player.pauseVideo();
             player.seekTo(0, true);
         }, 400);
