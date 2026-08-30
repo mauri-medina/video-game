@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong · YouTube</title>
+    <style>
+        :root {
+            --bg: #07070a;
+            --panel: #1b1b23;
+            --line: #3a3a45;
+            --line-soft: #4e4e5b;
+            --text: #f4f4f7;
+            --dim: #a8a8b4;
+            --dimmer: #82828f;
+            --accent: #66b2ff;
+            --accent-solid: #4a9eff;
+            --warn: #ffc53d;
+            --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { -webkit-text-size-adjust: 100%; }
+
+        body {
+            background:
+                radial-gradient(900px 500px at 50% -10%, rgba(102, 178, 255, 0.09), transparent 70%),
+                var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 32px 16px;
+            gap: 22px;
+        }
+
+        /* ── Header ──────────────────────────────────────────────── */
+        header { text-align: center; }
+
+        h1 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            letter-spacing: 0.42em;
+            text-indent: 0.42em;
+            text-transform: uppercase;
+            color: #fff;
+        }
+
+        header p {
+            margin-top: 8px;
+            font-size: 0.78rem;
+            color: var(--dim);
+            line-height: 1.5;
+        }
+
+        header p b { color: var(--dim); font-weight: 600; }
+
+        /* ── Board ───────────────────────────────────────────────── */
+        #board {
+            position: relative;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #000;
+            overflow: hidden;
+            box-shadow:
+                0 0 0 1px rgba(255, 255, 255, 0.02),
+                0 24px 60px -24px rgba(0, 0, 0, 0.9);
+            transition: box-shadow 0.4s ease;
+        }
+
+        #board.live {
+            box-shadow:
+                0 0 0 1px rgba(102, 178, 255, 0.35),
+                0 0 60px -12px rgba(102, 178, 255, 0.28),
+                0 24px 60px -24px rgba(0, 0, 0, 0.9);
+        }
+
+        #stage {
+            position: relative;
+            transform-origin: top left;
+        }
+
+        #player, #player iframe { display: block; border: none; }
+
+        /* the video is a render surface, not a player: swallow clicks */
+        #shield { position: absolute; inset: 0; }
+
+        /* ── Overlay ─────────────────────────────────────────────── */
+        #overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            background: rgba(4, 4, 7, 0.94);
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+            font-size: 0.8rem;
+            color: var(--dim);
+            transition: opacity 0.35s ease;
+        }
+
+        #overlay[data-state="hidden"] { opacity: 0; pointer-events: none; }
+        #overlay[data-state="paused"] { background: rgba(4, 4, 7, 0.82); cursor: pointer; }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--line-soft);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #start-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 26px 11px 22px;
+            border: 1px solid var(--accent);
+            border-radius: 999px;
+            background: rgba(102, 178, 255, 0.18);
+            color: #fff;
+            font: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s, transform 0.15s;
+        }
+
+        #start-btn:hover {
+            background: rgba(102, 178, 255, 0.3);
+            border-color: #a3d0ff;
+        }
+
+        #start-btn:active { transform: scale(0.97); }
+        #start-btn svg { fill: #fff; }
+
+        .overlay-title {
+            font-size: 0.78rem;
+            letter-spacing: 0.3em;
+            text-indent: 0.3em;
+            text-transform: uppercase;
+            color: var(--text);
+        }
+
+        .overlay-hint { font-size: 0.72rem; color: var(--dim); }
+
+        /* ── Toolbar ─────────────────────────────────────────────── */
+        #toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            max-width: 528px;
+        }
+
+        .icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border: 1px solid var(--line-soft);
+            border-radius: 10px;
+            background: var(--panel);
+            color: var(--text);
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s, transform 0.12s;
+        }
+
+        .icon-btn:hover:not(:disabled) { border-color: var(--accent); background: #26262f; }
+        .icon-btn:active:not(:disabled) { transform: scale(0.94); }
+        .icon-btn:disabled { opacity: 0.45; cursor: default; }
+        .icon-btn svg { fill: currentColor; }
+
+        #status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+            height: 38px;
+            padding: 0 14px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: var(--panel);
+            font-size: 0.74rem;
+            color: var(--text);
+        }
+
+        #dot {
+            flex: none;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--dim);
+            transition: background 0.25s, box-shadow 0.25s;
+        }
+
+        #status[data-tone="live"] #dot {
+            background: var(--accent);
+            box-shadow: 0 0 10px rgba(102, 178, 255, 0.9);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        #status[data-tone="busy"] #dot {
+            background: var(--warn);
+            box-shadow: 0 0 10px rgba(255, 197, 61, 0.85);
+            animation: pulse 0.9s ease-in-out infinite;
+        }
+
+        @keyframes pulse { 50% { opacity: 0.35; } }
+
+        #status-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        #readout {
+            margin-left: auto;
+            padding-left: 12px;
+            font-family: var(--mono);
+            font-size: 0.68rem;
+            color: var(--dim);
+            white-space: nowrap;
+        }
+
+        /* ── Controls legend ─────────────────────────────────────── */
+        #legend {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            width: 100%;
+            max-width: 528px;
+        }
+
+        .pad {
+            flex: 1 1 0;
+            min-width: 150px;
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: var(--panel);
+            text-align: center;
+        }
+
+        .pad .who {
+            font-size: 0.66rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--dim);
+        }
+
+        .pad .keys {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 9px;
+        }
+
+        kbd {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 26px;
+            padding: 0 8px;
+            border: 1px solid var(--line-soft);
+            border-bottom-width: 2px;
+            border-radius: 6px;
+            background: #292933;
+            font-family: var(--mono);
+            font-size: 0.74rem;
+            color: var(--text);
+        }
+
+        kbd.wide { letter-spacing: 0.12em; }
+        kbd.on { border-color: var(--accent); color: #fff; background: rgba(102, 178, 255, 0.3); }
+
+        footer {
+            font-size: 0.7rem;
+            color: var(--dim);
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        footer a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--line-soft); }
+        footer a:hover { color: var(--accent); border-color: var(--accent); }
+
+        @media (max-width: 620px) {
+            #legend .pad { min-width: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Pong</h1>
+    <p>The <b>YouTube player</b> is the render engine &mdash; every board position is a frame.</p>
+</header>
+
+<div id="board">
+    <div id="stage">
+        <div id="player"></div>
+        <div id="shield"></div>
+        <div id="overlay" data-state="loading">
+            <div class="spinner"></div>
+            <span class="overlay-hint">Loading game states&hellip;</span>
+        </div>
+    </div>
+</div>
+
+<div id="toolbar">
+    <button id="toggle-btn" class="icon-btn" disabled aria-label="Play game" title="Play / pause the game (space)">
+        <svg width="14" height="14" viewBox="0 0 12 12" aria-hidden="true"><path id="toggle-icon" d="M2 1l8 5-8 5z"/></svg>
+    </button>
+    <div id="status" data-tone="idle">
+        <span id="dot"></span>
+        <span id="status-text">Loading&hellip;</span>
+        <span id="readout"></span>
+    </div>
+</div>
+
+<div id="legend">
+    <div class="pad">
+        <div class="who">Left paddle</div>
+        <div class="keys"><kbd data-key="w">W</kbd><kbd data-key="s">S</kbd></div>
+    </div>
+    <div class="pad">
+        <div class="who">Pause</div>
+        <div class="keys"><kbd class="wide" data-key=" ">space</kbd></div>
+    </div>
+    <div class="pad">
+        <div class="who">Right paddle</div>
+        <div class="keys"><kbd data-key="arrowup">&uarr;</kbd><kbd data-key="arrowdown">&darr;</kbd></div>
+    </div>
+</div>
+
+<footer>
+    Keyboard required &middot;
+    <a href="https://www.youtube.com/watch?v=meFEZtn-Dqw" target="_blank" rel="noopener">source video</a> &middot;
+    <a href="https://github.com/mauri-medina/video-game" target="_blank" rel="noopener">source code</a>
+</footer>
+
+<script>
+    // ── Constants (match pong_2p.py) ─────────────────────────────────────────
+    const CELL = 22;
+    const COLS = 24;
+    const ROWS = 14;
+    const W = COLS * CELL;
+    const H = ROWS * CELL;
+    const PAD_H = 6 * CELL;
+    const P_SPD = CELL * 2;
+    const B_SPD = CELL;
+    const GAME_FPS = 5;
+    const VIDEO_FPS = 60;
+    const FRAME_MS = 1000 / GAME_FPS;
+    const CSV_URL = '528x308_cell22_fps60_repeat3.csv';
+    const VIDEO_ID = 'meFEZtn-Dqw';
+
+    // ── DOM refs ─────────────────────────────────────────────────────────────
+    const boardEl = document.getElementById('board');
+    const stageEl = document.getElementById('stage');
+    const overlay = document.getElementById('overlay');
+    const toggleBtn = document.getElementById('toggle-btn');
+    const toggleIcon = document.getElementById('toggle-icon');
+    const statusEl = document.getElementById('status');
+    const statusText = document.getElementById('status-text');
+    const readout = document.getElementById('readout');
+
+    const ICON_PLAY = 'M2 1l8 5-8 5z';
+    const ICON_PAUSE = 'M2.5 1h2.5v10H2.5zM7 1h2.5v10H7z';
+
+    // ── Game state ───────────────────────────────────────────────────────────
+    let leftPadY = 0;
+    let rightPadY = 0;
+    let ballX = 12 * CELL;
+    let ballY = 7 * CELL;
+    let bvx = -B_SPD;
+    let bvy = -B_SPD;
+
+    let frameMap = null;      // "state key" -> frame number
+    let started = false;      // the player has hit start at least once
+    let running = false;      // the simulation is advancing
+    let buffering = false;    // YouTube is fetching, so the sim is frozen
+    let lastFrame = -1;       // avoid re-seeking to the frame already shown
+
+    // ── Input ────────────────────────────────────────────────────────────────
+    const keys = {};
+
+    document.addEventListener('keydown', e => {
+        const k = e.key.toLowerCase();
+        if (k === ' ') {
+            e.preventDefault();
+            if (started) setRunning(!running);
+            return;
+        }
+        if (k === 'arrowup' || k === 'arrowdown') e.preventDefault();
+        keys[k] = true;
+        paintKey(k, true);
+    });
+
+    document.addEventListener('keyup', e => {
+        const k = e.key.toLowerCase();
+        keys[k] = false;
+        paintKey(k, false);
+    });
+
+    window.addEventListener('blur', () => {
+        for (const k in keys) { keys[k] = false; paintKey(k, false); }
+    });
+
+    function paintKey(k, on) {
+        const el = document.querySelector('kbd[data-key="' + (k === ' ' ? ' ' : k) + '"]');
+        if (el) el.classList.toggle('on', on);
+    }
+
+    // ── Status chip ──────────────────────────────────────────────────────────
+    function setStatus(tone, text) {
+        statusEl.dataset.tone = tone;
+        statusText.textContent = text;
+    }
+
+    function setRunning(next) {
+        running = next;
+        toggleIcon.setAttribute('d', running ? ICON_PAUSE : ICON_PLAY);
+        toggleBtn.setAttribute('aria-label', running ? 'Pause game' : 'Play game');
+        boardEl.classList.toggle('live', running);
+
+        if (running) {
+            overlay.dataset.state = 'hidden';
+            if (!buffering) setStatus('live', 'Playing');
+        } else {
+            setStatus('idle', 'Paused');
+            overlay.dataset.state = 'paused';
+            overlay.innerHTML =
+                '<div class="overlay-title">Paused</div>' +
+                '<div class="overlay-hint">space, click, or &#9654; to resume</div>';
+        }
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        if (!started) startGame(); else setRunning(!running);
+    });
+
+    // Clicking the dimmed board resumes, like any paused player.
+    overlay.addEventListener('click', () => {
+        if (overlay.dataset.state === 'paused') setRunning(true);
+    });
+
+    // ── CSV loading ──────────────────────────────────────────────────────────
+    function parseCSV(text) {
+        const map = Object.create(null);
+        const lines = text.trim().split('\n');
+        for (let i = 1; i < lines.length; i++) {
+            const p = lines[i].split(',');
+            if (p.length < 7) continue;
+            map[p[0] + ',' + p[1] + ',' + p[2] + ',' + p[3] + ',' + p[4] + ',' + p[5]] = +p[6];
+        }
+        return map;
+    }
+
+    fetch(CSV_URL)
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+        .then(text => {
+            frameMap = parseCSV(text);
+            setStatus('idle', Object.keys(frameMap).length.toLocaleString() + ' states ready');
+            maybeReady();
+        })
+        .catch(err => {
+            setStatus('idle', 'Could not load ' + CSV_URL);
+            overlay.dataset.state = 'error';
+            overlay.innerHTML =
+                '<div class="overlay-title">No states</div>' +
+                '<div class="overlay-hint">' + CSV_URL + ' failed to load (' + err.message + ')</div>';
+        });
+
+    // ── YouTube player ───────────────────────────────────────────────────────
+    let player;
+    let playerReady = false;
+
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player('player', {
+            width: W,
+            height: H,
+            videoId: VIDEO_ID,
+            playerVars: {
+                autoplay: 0,
+                mute: 1,
+                controls: 0,       // the video is a canvas, not something to scrub
+                disablekb: 1,
+                iv_load_policy: 3,
+                fs: 0,
+                rel: 0,
+                playsinline: 1,
+                modestbranding: 1
+            },
+            events: {
+                onReady: () => {
+                    playerReady = true;
+                    player.setPlaybackQuality('small');
+                    maybeReady();
+                },
+                onStateChange: e => {
+                    const wasBuffering = buffering;
+                    buffering = (e.data === YT.PlayerState.BUFFERING);
+                    if (buffering !== wasBuffering && running) {
+                        setStatus(buffering ? 'busy' : 'live', buffering ? 'Syncing frames…' : 'Playing');
+                    }
+                }
+            }
+        });
+    }
+
+    // Both the CSV and the player have to be up before the game can start.
+    function maybeReady() {
+        if (!frameMap || !playerReady || started) return;
+        overlay.dataset.state = 'ready';
+        overlay.innerHTML =
+            '<button id="start-btn"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">' +
+            '<path d="M2 1l8 5-8 5z"/></svg>Start</button>' +
+            '<div class="overlay-hint">W / S &middot; &uarr; / &darr;</div>';
+        overlay.querySelector('#start-btn').addEventListener('click', startGame);
+        toggleBtn.disabled = false;
+        setStatus('idle', 'Ready');
+    }
+
+    // The first play() is what gets YouTube to decode; it is paused right after
+    // so only our seeks move the picture.
+    function startGame() {
+        if (!frameMap || !playerReady) return;
+        started = true;
+        player.playVideo();
+        setTimeout(() => {
+            player.pauseVideo();
+            player.seekTo(0, true);
+        }, 400);
+        setRunning(true);
+    }
+
+    // ── Simulation ───────────────────────────────────────────────────────────
+    function gameStep() {
+        let leftVel = 0;
+        if (keys['w']) leftVel = -P_SPD;
+        if (keys['s']) leftVel = P_SPD;
+
+        let rightVel = 0;
+        if (keys['arrowup']) rightVel = -P_SPD;
+        if (keys['arrowdown']) rightVel = P_SPD;
+
+        leftPadY = Math.max(0, Math.min(H - PAD_H, leftPadY + leftVel));
+        rightPadY = Math.max(0, Math.min(H - PAD_H, rightPadY + rightVel));
+
+        ballX += bvx;
+        ballY += bvy;
+
+        const hitLeft = ballX < CELL && ballX + CELL > 0
+            && ballY < leftPadY + PAD_H && ballY + CELL > leftPadY;
+        const hitRight = ballX + CELL > 23 * CELL && ballX < 24 * CELL
+            && ballY < rightPadY + PAD_H && ballY + CELL > rightPadY;
+        if (hitLeft || hitRight) {
+            bvx *= -1;
+            ballX += bvx * 2;
+        }
+
+        if (ballY <= 0 || ballY + CELL >= H) bvy *= -1;
+
+        if (ballX <= 0 || ballX + CELL >= W) {
+            ballX = 12 * CELL;
+            ballY = 7 * CELL;
+        }
+
+        const bx = Math.floor(ballX / CELL);
+        const by = Math.floor(ballY / CELL);
+        const ply = Math.floor(leftPadY / CELL);
+        const pry = Math.floor(rightPadY / CELL);
+        const key = '0,' + ply + ',' + bx + ',' + by + ',23,' + pry;
+        const frame = frameMap[key];
+        if (frame == null) return;
+
+        readout.textContent = 'ball ' + bx + ',' + by + ' · f' + frame;
+
+        if (frame !== lastFrame) {
+            lastFrame = frame;
+            player.seekTo(frame / VIDEO_FPS, true);
+        }
+    }
+
+    let lastTime = 0;
+
+    function loop(now) {
+        // While YouTube is buffering the picture lags the state, so freeze the
+        // simulation instead of letting the ball move invisibly.
+        if (running && !buffering) {
+            const delta = now - lastTime;
+            if (delta >= FRAME_MS) {
+                lastTime = now - (delta % FRAME_MS);
+                gameStep();
+            }
+        } else {
+            lastTime = now;
+        }
+        requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+
+    // ── Fit the fixed-size board into narrow viewports ───────────────────────
+    function fit() {
+        const room = Math.min(W, document.body.clientWidth - 32);
+        const scale = Math.min(1, room / W);
+        stageEl.style.transform = 'scale(' + scale + ')';
+        boardEl.style.width = Math.round(W * scale) + 'px';
+        boardEl.style.height = Math.round(H * scale) + 'px';
+    }
+
+    fit();
+    window.addEventListener('resize', fit);
+</script>
+</body>
+</html>
