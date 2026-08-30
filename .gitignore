@@ -1,0 +1,16 @@
+# Los videos generados no van al repo: el que importa vive en YouTube y el
+# resto se regenera con video_generator_pong_yt.py. Son ~100 MB en total.
+*.mp4
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Editores / SO
+.idea/
+.vscode/
+.DS_Store
+
+# Node
+node_modules/
