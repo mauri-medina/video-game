@@ -8,6 +8,8 @@ running the game logic, figuring out which frame matches the current state, and
 telling the video player to jump to it.
 
 
+![Pong played through a video player](demo.gif)
+
 ▶ **[Play Pong with YouTube](https://mauri-medina.github.io/video-game/)** ·
 [the video it plays](https://www.youtube.com/watch?v=meFEZtn-Dqw)
 
